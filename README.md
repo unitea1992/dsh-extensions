@@ -2,4 +2,4 @@
 
 DeepSeek Harness 用の拡張をまとめるリポジトリです。
 
-各拡張は `extensions/` に置き、それぞれの導入方法と動作条件を記載します。
+- [route-guard](extensions/route-guard/README.md)：モデルへのリクエストの送信先と推論量を検査する
