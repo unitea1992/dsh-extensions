@@ -1,0 +1,8 @@
+{
+  "name": "dsh-extensions",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "workspaces": ["extensions/*"],
+  "scripts": { "test": "node --test extensions/*/test/*.test.mjs" }
+}
