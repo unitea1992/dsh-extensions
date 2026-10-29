@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { apply } from '../src/index.mjs';
@@ -14,9 +14,18 @@ test('accepts only the expected route and writes observed values', async () => {
     assert.deepEqual(JSON.parse(readFileSync(join(dir, 'guard-ready.json'))), { provider: 'spark-local', model: 'test', effort: 'high' });
     const correct = { provider: 'spark-local', model: 'test', reasoningEffort: 'high' };
     assert.deepEqual(await listener({}, async () => correct), correct);
+    assert.deepEqual(JSON.parse(readFileSync(join(dir, 'route-observed.json'))), { provider: 'spark-local', model: 'test', effort: 'high' });
     for (const patch of [{ provider: 'river' }, { model: 'wrong' }, { reasoningEffort: 'max' }, { reasoningEffort: undefined }]) {
       await assert.rejects(listener({}, async () => ({ ...correct, ...patch })), /does not match/);
     }
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('rejects a non-private status directory', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'route-guard-test-'));
+  try {
+    chmodSync(dir, 0o755);
+    assert.throws(() => apply({ on() {} }, { provider: 'river', model: 'test', effort: 'high', statusDir: dir }), /private/);
   } finally { rmSync(dir, { recursive: true }); }
 });
 

@@ -1,14 +1,23 @@
-import { writeFileSync, renameSync } from 'node:fs';
+import { lstatSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 
 export const name = 'route-guard';
 
 function record(dir, name, value) {
   if (!dir) return;
+  const stat = lstatSync(dir);
+  if (!stat.isDirectory() || stat.uid !== process.getuid() || (stat.mode & 0o077) !== 0) {
+    throw new Error('route-guard: status directory must be private and owned by the current user');
+  }
   const target = join(dir, name);
-  const temporary = `${target}.${process.pid}.tmp`;
-  writeFileSync(temporary, JSON.stringify(value), { mode: 0o600 });
-  renameSync(temporary, target);
+  const temporary = join(dir, `.${name}.${randomUUID()}`);
+  try {
+    writeFileSync(temporary, JSON.stringify(value), { mode: 0o600, flag: 'wx' });
+    renameSync(temporary, target);
+  } finally {
+    try { unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
 }
 
 export function apply(ctx, config) {
